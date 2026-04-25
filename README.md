@@ -157,9 +157,10 @@ A yearly rebalanced simulation was conducted using the top-quintile model portfo
 
 Starting with $1,000 at the beginning of 2012:
 
-Strategy	Ending Value
-Model Top Quintile	$20,579.96
-Market Average	$8,321.74
+| Strategy | Ending Value | 
+| --------- | -------- |
+Model Top Quintile | $20,579.96
+Market Average | $8,321.74
 
 The model portfolio outperformed the market average by approximately $12,258 over the simulation period.
 
