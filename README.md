@@ -86,11 +86,11 @@ Daily sentiment data was aggregated into yearly stock-level features, including:
 - sentiment_max  
 - sentiment_obs (number of observations)
 
-These variables capture both the **average tone** and **dispersion of sentiment** for each stock.
+These variables capture both the average tone and dispersion of sentiment for each stock.
 
-Sentiment data coverage is strongest in the later years of the sample (primarily 2023–2025). These features were merged into the broader 2011–2025 dataset, allowing the model to evaluate the incremental contribution of sentiment alongside traditional financial variables.
+Sentiment data coverage is used in the later years of the sample (2023–2025). These features were merged into the broader 2011–2025 dataset, allowing the model to evaluate the incremental contribution of sentiment alongside traditional financial variables.
 
-While sentiment is not the dominant predictor, it provides **additional explanatory power**, particularly when combined with valuation, volatility, and size-related factors.
+While sentiment is not the dominant predictor, it provides additional explanatory power, particularly when combined with valuation, volatility, and size-related factors.
 
 ### 4. Machine Learning Model
 
@@ -124,7 +124,7 @@ Top selected features:
 
 Average Return by Quintile
 
-Quintile	Average Next-Year Return
+Quintile: Average Next-Year Return
 - Q1: 11.77%
 - Q2: 14.40%
 - Q3: 14.45%
