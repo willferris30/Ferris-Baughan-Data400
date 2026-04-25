@@ -73,6 +73,7 @@ The model predicts next-year returns using:
 
 ```python
 return_next_year = px_next_year / PX_LAST - 1
+```
 
 ### 3. Sentiment Engineering
 
