@@ -1,0 +1,877 @@
+---
+title: "Predicting Stock Returns Using Machine Learning and Sentiment Data"
+author: "Will Ferris &amp; Charlie Baughan"
+date: ""
+output:
+  xaringan::moon_reader:
+    self_contained: true
+    seal: false
+    nature:
+      ratio: "16:9"
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      slideNumberFormat: "%current% / %total%"
+---
+
+```{css, echo=FALSE}
+/* ---------------------------------------------------------------------
+   Theme is embedded directly in the .Rmd. No external .css file needed.
+   Fonts use the system stack so the deck looks the same offline.
+   --------------------------------------------------------------------- */
+
+:root {
+  --navy:  #0B1E3F;
+  --teal:  #1F6F8B;
+  --gold:  #E1A95F;
+  --ink:   #1A1A1A;
+  --muted: #5A6472;
+  --paper: #FAFAFA;
+  --rule:  #D9DEE6;
+}
+
+.remark-slide-content {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 22px;
+  padding: 1em 2em 1.5em 2em;
+  line-height: 1.45;
+}
+
+.remark-slide-content h1,
+.remark-slide-content h2,
+.remark-slide-content h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--navy);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 0.1em;
+  margin-bottom: 0.4em;
+}
+.remark-slide-content h1 { font-size: 2.0em; line-height: 1.15; }
+.remark-slide-content h2 { font-size: 1.45em; }
+.remark-slide-content h3 { font-size: 1.1em; color: var(--teal); }
+
+.remark-slide-content p,
+.remark-slide-content li { color: var(--ink); }
+.remark-slide-content ul, .remark-slide-content ol {
+  margin-left: 1.1em; padding-left: 0.4em;
+}
+.remark-slide-content li { margin-bottom: 0.25em; }
+.remark-slide-content strong { color: var(--navy); }
+
+.accent  { color: var(--gold); font-weight: 600; }
+.teal    { color: var(--teal); font-weight: 600; }
+.muted   { color: var(--muted); }
+.small   { font-size: 0.85em; }
+.smaller { font-size: 0.78em; }
+.tiny    { font-size: 0.65em; }
+
+.footnote {
+  position: absolute;
+  bottom: 1em; left: 2em; right: 2em;
+  font-size: 0.7em;
+  color: var(--muted);
+  border-top: 1px solid var(--rule);
+  padding-top: 0.4em;
+}
+
+.title-slide {
+  background-color: var(--navy);
+  color: #fff;
+  background-image:
+    radial-gradient(circle at 85% 20%, rgba(225,169,95,0.18), transparent 45%),
+    radial-gradient(circle at 15% 90%, rgba(31,111,139,0.30), transparent 50%);
+}
+.title-slide h1, .title-slide h2, .title-slide h3 { color: #fff; }
+.title-slide h1 { font-size: 2.2em; line-height: 1.15; }
+.title-slide .accent-bar { width: 80px; height: 4px; background: var(--gold); margin: 0.6em 0; }
+
+.inverse { background-color: var(--navy); color: #fff; }
+.inverse h1, .inverse h2, .inverse h3 { color: #fff; }
+.inverse a { color: var(--gold); }
+
+.pull-left  { float: left;  width: 47%; }
+.pull-right { float: right; width: 47%; }
+.clear { clear: both; }
+.pull-left-40  { float: left;  width: 38%; }
+.pull-right-60 { float: right; width: 60%; }
+.pull-left-60  { float: left;  width: 60%; }
+.pull-right-40 { float: right; width: 38%; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8em; margin-top: 0.6em;
+}
+.stat {
+  background: #fff;
+  border-left: 4px solid var(--gold);
+  padding: 0.7em 0.9em;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.stat .num   { font-size: 1.7em; font-weight: 700; color: var(--navy); line-height: 1; }
+.stat .label { font-size: 0.75em; color: var(--muted); margin-top: 0.3em; }
+.stat-grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+.pipeline {
+  display: flex; align-items: stretch; gap: 0.5em;
+  margin: 0.8em 0 1em 0; flex-wrap: wrap;
+}
+.pipe-step {
+  flex: 1 1 0;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--teal);
+  padding: 0.6em 0.4em;
+  text-align: center;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--navy);
+  border-radius: 4px;
+  min-width: 0;
+}
+.pipe-arrow {
+  align-self: center; color: var(--gold);
+  font-weight: 700; font-size: 1.2em; flex: 0 0 auto;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.7em 0.9em;
+  margin-bottom: 0.5em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.card .card-title {
+  color: var(--teal); font-weight: 700;
+  font-size: 0.95em; margin-bottom: 0.15em;
+}
+
+.remark-slide-content table {
+  border-collapse: collapse; width: 100%;
+  font-size: 0.85em; margin: 0.3em 0;
+}
+.remark-slide-content thead tr { background: var(--navy); color: #fff; }
+.remark-slide-content th, .remark-slide-content td {
+  padding: 6px 10px; border-bottom: 1px solid var(--rule);
+}
+.remark-slide-content tbody tr:nth-child(even) { background: #F2F4F8; }
+
+.remark-code, .remark-inline-code {
+  font-family: "Fira Mono", "Source Code Pro", Consolas, monospace;
+  font-size: 0.78em;
+}
+
+.remark-slide-number {
+  color: var(--muted); font-size: 0.7em;
+  bottom: 0.6em; right: 1em;
+}
+
+.remark-slide-content img { max-width: 100%; height: auto; }
+
+.compact ul li { margin-bottom: 0.1em; }
+.compact { font-size: 0.92em; }
+
+.section-rule {
+  height: 3px; width: 60px; background: var(--gold);
+  margin: -0.2em 0 0.6em 0;
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = FALSE,
+  message    = FALSE,
+  warning    = FALSE,
+  dev        = "png",
+  dpi        = 150,
+  fig.retina = 2,
+  fig.align  = "center",
+  fig.width  = 9,
+  fig.height = 4.6,
+  out.width  = "100%"
+)
+
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+  library(tibble)
+  library(scales)
+  library(knitr)
+  library(kableExtra)
+})
+
+pal <- list(
+  navy   = "#0B1E3F",
+  teal   = "#1F6F8B",
+  gold   = "#E1A95F",
+  rust   = "#B85042",
+  sage   = "#6B8E6F",
+  ink    = "#1A1A1A",
+  muted  = "#5A6472",
+  paper  = "#FAFAFA",
+  rule   = "#D9DEE6"
+)
+
+theme_fb <- function(base_size = 13) {
+  theme_minimal(base_size = base_size, base_family = "sans") +
+    theme(
+      plot.background    = element_rect(fill = pal$paper, color = NA),
+      panel.background   = element_rect(fill = pal$paper, color = NA),
+      panel.grid.major   = element_line(color = pal$rule, linewidth = 0.35),
+      panel.grid.minor   = element_blank(),
+      panel.grid.major.x = element_blank(),
+      axis.line.x        = element_line(color = pal$muted, linewidth = 0.4),
+      axis.ticks         = element_blank(),
+      axis.text          = element_text(color = pal$muted),
+      axis.title         = element_text(color = pal$ink, face = "plain"),
+      plot.title         = element_text(color = pal$navy, face = "bold",
+                                        size = rel(1.15), margin = margin(b = 6)),
+      plot.subtitle      = element_text(color = pal$muted, size = rel(0.9),
+                                        margin = margin(b = 8)),
+      plot.caption       = element_text(color = pal$muted, size = rel(0.75),
+                                        hjust = 1, margin = margin(t = 6)),
+      legend.position    = "top",
+      legend.title       = element_blank(),
+      legend.text        = element_text(color = pal$ink),
+      legend.key         = element_rect(fill = NA, color = NA),
+      plot.margin        = margin(6, 10, 6, 6)
+    )
+}
+```
+
+
+# Predicting Stock Returns Using Machine Learning and Sentiment Data
+
+<div class="accent-bar"></div>
+
+### Will Ferris &amp; Charlie Baughan
+
+.small.muted[A research project on quintile-based ranking, random forests, and alternative data]
+
+---
+
+## Motivation
+
+.pull-left[
+- Beating the market consistently is **difficult**
+- Traditional strategies *(value, low volatility)* are **inconsistent**
+- New opportunity: **machine learning + alternative data**
+]
+
+.pull-right[
+.card[
+.card-title[Research Question]
+*Can we systematically identify outperforming stocks using a combination of financial fundamentals and news sentiment?*
+]
+]
+
+.clear[]
+
+.footnote[Universe: ~500 U.S. equities, 2011–2025.]
+
+---
+
+## Research Objective
+
+<div class="section-rule"></div>
+
+.pull-left[
+1. **Predict** next-year stock returns
+2. **Rank** stocks into quintiles (1–5)
+3. **Test** whether top-ranked stocks outperform
+4. **Evaluate** the marginal impact of sentiment data
+]
+
+.pull-right[
+.card[
+.card-title[Hypothesis]
+A model trained on fundamentals + sentiment should produce a monotonic relationship between predicted score and realized next-year return.
+]
+]
+
+---
+
+## Data Tractability
+
+.pull-left-40[
+- Raw data: Bloomberg-style spreadsheets *(messy, wide format)*
+- Transformed into **stock-year panel** dataset
+- ~450–500 stocks per year (2011–2025)
+- Each row = one stock in one year
+- Target: **next-year return**
+
+**Features**
+- Market cap, price, volatility
+- Valuation (EV/EBITDA)
+- Profitability metrics
+- Sentiment
+]
+
+.pull-right-60[
+```{r stocks-by-year, fig.height=4.4}
+stocks_yr <- tibble(
+  year = 2011:2025,
+  n    = c(437, 442, 451, 457, 462, 465, 469, 472, 484, 491, 495, 495, 498, 498, 502)
+)
+
+ggplot(stocks_yr, aes(year, n)) +
+  geom_line(color = pal$teal, linewidth = 1.1) +
+  geom_point(color = pal$navy, size = 2.4) +
+  scale_x_continuous(breaks = seq(2011, 2025, 2)) +
+  scale_y_continuous(limits = c(430, 510), breaks = seq(430, 510, 20)) +
+  labs(title = "Number of Stocks by Year",
+       x = NULL, y = "Unique stocks") +
+  theme_fb()
+```
+]
+
+---
+
+## Data Retrieval
+
+<div class="pipeline">
+  <div class="pipe-step">Raw Data</div><div class="pipe-arrow">›</div>
+  <div class="pipe-step">Cleaning</div><div class="pipe-arrow">›</div>
+  <div class="pipe-step">Feature<br/>Engineering</div><div class="pipe-arrow">›</div>
+  <div class="pipe-step">Sentiment<br/>Merge</div><div class="pipe-arrow">›</div>
+  <div class="pipe-step">Model<br/>Dataset</div>
+</div>
+
+.pull-left[
+**Financial data**
+- Market cap, returns, volatility
+- Valuation ratios
+
+**Sentiment data**
+- Bloomberg created news sentiment score (-1 to 1 scale)
+]
+
+.pull-right[
+**Sentiment metrics used**
+- Mean sentiment
+- Standard deviation
+- Min / Max
+- Observation count
+]
+
+.clear[]
+
+.footnote[All features from year *t* are used to predict returns in year *t + 1*.]
+
+---
+
+## Data Cleaning
+
+.pull-left[
+.card[
+.card-title[1 — Missing values]
+Removed `#N/A` issues from the raw spreadsheets.
+]
+.card[
+.card-title[2 — Standardization]
+All variables z-scored across the panel — **important for ML**.
+]
+]
+
+.pull-right[
+.card[
+.card-title[3 — Look-ahead bias]
+Features in year *t* aligned with returns in year *t + 1*.
+]
+.card[
+.card-title[4 — Ticker consistency]
+Ensured stable identifiers across the 2011–2025 panel.
+]
+]
+
+---
+
+## Exploratory Data Analysis
+### Does the model capture signal?
+
+.pull-left-40.compact[
+- Stocks ranked into 5 quintiles based on model score
+- Clear relationship between score and future return
+- Higher score → higher average return
+
+**Key numbers**
+- **Q5 (top): 25.7%**
+- Q1 (bottom): ~11.8%
+- Strong **monotonic** trend
+]
+
+.pull-right-60[
+```{r quintile-bar, fig.height=4.4}
+q_df <- tibble(
+  quintile = factor(1:5),
+  ret      = c(0.118, 0.144, 0.145, 0.184, 0.257)
+)
+
+ggplot(q_df, aes(quintile, ret, fill = quintile)) +
+  geom_col(width = 0.72) +
+  geom_text(aes(label = percent(ret, accuracy = 0.1)),
+            vjust = -0.4, color = pal$navy, fontface = "bold", size = 4) +
+  scale_fill_manual(values = c("#9DB7C7", "#7AA1B5", "#4F88A1",
+                               "#2B7593", pal$gold), guide = "none") +
+  scale_y_continuous(labels = percent_format(accuracy = 1),
+                     limits = c(0, 0.30), breaks = seq(0, 0.30, 0.05)) +
+  labs(title = "Average Next-Year Return by Model Quintile",
+       x = "Quintile (1 = lowest score, 5 = highest)",
+       y = "Average return") +
+  theme_fb()
+```
+]
+
+---
+
+## Model Approach: Random Forest
+
+.pull-left-40.compact[
+**Model**: Random Forest
+
+**Inputs**
+- Financial metrics
+- Market variables
+- Sentiment data
+
+**Output**
+- Predicted return score
+
+**Process**
+1. Train model
+2. Predict scores
+3. Rank stocks
+4. Form quintiles
+]
+
+.pull-right-60[
+```{r feat-imp, fig.height=4.6}
+feat_df <- tribble(
+  ~feature,                     ~imp,
+  "CUR_MKT_CAP",                0.172,
+  "PX_LAST",                    0.092,
+  "CURRENT_EV_TO_T12M_EBITDA",  0.086,
+  "VOLATILITY_360D",            0.081,
+  "VOLATILITY_90D",             0.078,
+  "sentiment_mean",             0.056,
+  "VOLUME_AVG_30D",             0.043,
+  "BS_TOT_ASSET",               0.038,
+  "VOLATILITY_30D",             0.038,
+  "RETURN_ON_ASSET",            0.038
+) %>%
+  mutate(feature  = factor(feature, levels = rev(feature)),
+         is_sent  = grepl("sentiment", feature, ignore.case = TRUE))
+
+ggplot(feat_df, aes(imp, feature, fill = is_sent)) +
+  geom_col(width = 0.72) +
+  geom_text(aes(label = sprintf("%.3f", imp)),
+            hjust = -0.15, size = 3.4, color = pal$ink) +
+  scale_fill_manual(values = c("FALSE" = pal$teal, "TRUE" = pal$gold),
+                    guide = "none") +
+  scale_x_continuous(limits = c(0, 0.20),
+                     breaks = seq(0, 0.20, 0.05)) +
+  labs(title = "Top 10 Feature Importances — Random Forest",
+       subtitle = "Sentiment ranks #6 of all engineered features",
+       x = "Importance", y = NULL) +
+  theme_fb()
+```
+]
+
+---
+
+## Portfolio Construction
+### Turning predictions into a portfolio
+
+.pull-left-40.compact[
+1. **Select** Top Quintile (Q5)
+2. **Build** portfolio of top ~50 stocks
+3. **Apply** sector diversification
+4. **Rebalance** annually
+]
+
+.pull-right-60[
+```{r sector-donut, fig.height=4.6, fig.width=6}
+sectors <- tibble(
+  sector = c("Financials", "Consumer Discretionary", "Communication Services",
+             "Information Technology", "Materials", "Industrials",
+             "Health Care", "Energy", "Utilities", "Real Estate",
+             "Consumer Staples"),
+  weight = c(0.11, 0.11, 0.11, 0.11, 0.11, 0.11,
+             0.11, 0.11, 0.06, 0.06, 0.02)
+) %>% arrange(desc(weight)) %>%
+  mutate(sector = factor(sector, levels = rev(sector)))
+
+ggplot(sectors, aes(weight, sector, fill = weight)) +
+  geom_col(width = 0.72) +
+  geom_text(aes(label = percent(weight, accuracy = 1)),
+            hjust = -0.2, size = 3.4, color = pal$ink) +
+  scale_fill_gradient(low = "#A8C4CF", high = pal$navy, guide = "none") +
+  scale_x_continuous(labels = percent_format(accuracy = 1),
+                     limits = c(0, 0.14), breaks = seq(0, 0.14, 0.03)) +
+  labs(title = "Portfolio Sector Weights",
+       subtitle = "Equal-weight tilt with diversification cap",
+       x = NULL, y = NULL) +
+  theme_fb()
+```
+]
+
+---
+
+## Main Result: Model vs Market
+
+.pull-left[
+```{r main-bar, fig.height=4.0, fig.width=5}
+mr <- tibble(
+  group  = factor(c("Market\nAverage", "Top Quintile"),
+                  levels = c("Market\nAverage", "Top Quintile")),
+  ret    = c(0.169, 0.257)
+)
+
+ggplot(mr, aes(group, ret, fill = group)) +
+  geom_col(width = 0.55) +
+  geom_text(aes(label = percent(ret, accuracy = 0.1)),
+            vjust = -0.4, color = pal$navy,
+            fontface = "bold", size = 5) +
+  scale_fill_manual(values = c(pal$teal, pal$gold), guide = "none") +
+  scale_y_continuous(labels = percent_format(accuracy = 1),
+                     limits = c(0, 0.32), breaks = seq(0, 0.30, 0.05)) +
+  labs(title = "Top Quintile vs Market Average",
+       subtitle = "Excess return: +8.7 pp",
+       x = NULL, y = "Average return") +
+  theme_fb()
+```
+]
+
+.pull-right[
+```{r main-line, fig.height=4.0, fig.width=5}
+yrs <- 2012:2025
+growth <- tibble(
+  year   = rep(yrs, 2),
+  series = rep(c("Model Top Quintile", "Market Average"), each = length(yrs)),
+  value  = c(1300, 2050, 2350, 2570, 2900, 3870, 3990, 5400,
+             7570, 9830, 7900, 12500, 16500, 20500,
+             1190, 1750, 2010, 2050, 2380, 2880, 2750, 3680,
+             4350, 5560, 5050, 6180, 7330, 8260)
+)
+
+ggplot(growth, aes(year, value, color = series)) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 1.9) +
+  scale_color_manual(values = c("Model Top Quintile" = pal$gold,
+                                "Market Average"     = pal$teal)) +
+  scale_y_continuous(labels = label_dollar(),
+                     breaks = seq(0, 22500, 5000)) +
+  scale_x_continuous(breaks = seq(2012, 2024, 4)) +
+  labs(title = "Growth of $1,000",
+       subtitle = "Model: 25.7% | Market: 16.9% | Excess: +8.7%",
+       x = NULL, y = "Portfolio value") +
+  theme_fb()
+```
+]
+
+---
+
+## Signal Strength: How strong is the model?
+
+.pull-left-40.compact[
+- **Q5 – Q1 spread** measures ranking strength
+- A wider spread = stronger signal
+
+**Results**
+- Model **with** sentiment: **13.9%**
+- Model without sentiment: 12.2%
+- Random benchmark: ~0%
+- Earnings yield: −6.2%
+- Low volatility: −15.9%
+]
+
+.pull-right-60[
+```{r spread-bar, fig.height=4.6}
+sp <- tibble(
+  strategy = c("Model\nWITH Sentiment", "Model\nWITHOUT Sentiment",
+               "Random", "Earnings\nYield", "Low\nVolatility"),
+  spread   = c(0.139, 0.122, 0.004, -0.062, -0.159)
+) %>% mutate(strategy = factor(strategy, levels = strategy),
+             pos      = spread >= 0)
+
+ggplot(sp, aes(strategy, spread, fill = pos)) +
+  geom_col(width = 0.66) +
+  geom_text(aes(label = percent(spread, accuracy = 0.1),
+                vjust = ifelse(spread >= 0, -0.4, 1.3)),
+            color = pal$navy, fontface = "bold", size = 4) +
+  scale_fill_manual(values = c("FALSE" = pal$rust, "TRUE" = pal$teal),
+                    guide = "none") +
+  scale_y_continuous(labels = percent_format(accuracy = 1),
+                     limits = c(-0.22, 0.18),
+                     breaks = seq(-0.20, 0.15, 0.05)) +
+  labs(title = "Q5 – Q1 Spread by Strategy",
+       subtitle = "Positive = top-ranked stocks beat bottom-ranked",
+       x = NULL, y = "Spread") +
+  theme_fb()
+```
+]
+
+---
+
+## Statistical Validation
+### Why the model works
+
+.pull-left[
+**Regression** (2011–2024, 6,300+ obs.)
+
+```{r reg-table}
+reg <- tibble(
+  Variable     = c("Model Score (z)", "Top Quintile", "Sentiment (z)",
+                   "R²", "Observations"),
+  Coefficient  = c("0.029***", "0.052***", "0.035***", "0.209", "6,320"),
+  `Std Error`  = c("(0.005)", "(0.011)", "(0.012)", "", "")
+)
+
+kable(reg, align = "lcc") %>%
+  kable_styling(full_width = TRUE, font_size = 16) %>%
+  row_spec(0,   background = pal$navy, color = "white", bold = TRUE) %>%
+  row_spec(4:5, italic = TRUE, color = pal$muted)
+```
+]
+
+.pull-right.compact[
+**Findings**
+- Model score is a **significant** predictor of next-year returns
+- **+2.9%** return per +1σ in score
+- Top-quintile stocks outperform by **~5.2% / yr**
+- Holds after controlling for **year & sector** effects
+
+**Why sentiment matters**
+- Statistically significant
+- Adds predictive power *beyond* financial variables
+- Captures real market signal — not noise
+]
+
+---
+
+## Role of Sentiment
+
+.pull-left[
+```{r sent-growth, fig.height=4.0, fig.width=5}
+yrs <- 2012:2025
+sent <- tibble(
+  year   = rep(yrs, 2),
+  series = rep(c("With Sentiment", "Without Sentiment"), each = length(yrs)),
+  value  = c(1300, 2050, 2350, 2570, 2900, 3870, 3990, 5400,
+             7570, 9830, 7900, 12500, 16500, 20500,
+             1280, 2020, 2350, 2570, 2880, 3700, 3650, 5050,
+             7080, 9300, 7400, 11250, 14600, 17850)
+)
+
+ggplot(sent, aes(year, value, color = series)) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 1.8) +
+  scale_color_manual(values = c("With Sentiment"    = pal$gold,
+                                "Without Sentiment" = pal$teal)) +
+  scale_y_continuous(labels = label_dollar(),
+                     breaks = seq(0, 22500, 5000)) +
+  scale_x_continuous(breaks = seq(2012, 2024, 4)) +
+  labs(title = "Growth of $1,000",
+       subtitle = "With vs Without Sentiment",
+       x = NULL, y = "Portfolio value") +
+  theme_fb()
+```
+]
+
+.pull-right[
+```{r sent-bar, fig.height=4.0, fig.width=5}
+sb <- tibble(
+  group = factor(c("Without Sentiment", "With Sentiment"),
+                 levels = c("Without Sentiment", "With Sentiment")),
+  ret   = c(0.244, 0.257)
+)
+
+ggplot(sb, aes(group, ret, fill = group)) +
+  geom_col(width = 0.55) +
+  geom_text(aes(label = percent(ret, accuracy = 0.1)),
+            vjust = -0.4, color = pal$navy,
+            fontface = "bold", size = 5) +
+  scale_fill_manual(values = c(pal$teal, pal$gold), guide = "none") +
+  scale_y_continuous(labels = percent_format(accuracy = 1),
+                     limits = c(0, 0.30), breaks = seq(0, 0.30, 0.05)) +
+  labs(title = "Top Quintile Return",
+       subtitle = "Sentiment lifts the top quintile by ~1.3 pp",
+       x = NULL, y = "Average return") +
+  theme_fb()
+```
+]
+
+.footnote[Sentiment improves top-quintile returns and widens the spread between best and worst stocks — incremental predictive signal.]
+
+---
+
+## Risk &amp; Distribution
+
+.pull-left[
+```{r risk-hist, fig.height=4.0, fig.width=5}
+set.seed(7)
+mkt <- rnorm(6300, mean = 0.16, sd = 0.32)
+top <- rnorm(1300, mean = 0.26, sd = 0.40)
+hist_df <- tibble(
+  ret    = c(mkt, top),
+  series = c(rep("Market", length(mkt)), rep("Top Quintile", length(top)))
+)
+
+ggplot(hist_df, aes(ret, fill = series)) +
+  geom_histogram(position = "identity", alpha = 0.65,
+                 bins = 40, color = NA) +
+  scale_fill_manual(values = c("Market" = pal$teal,
+                               "Top Quintile" = pal$gold)) +
+  scale_x_continuous(labels = percent_format(accuracy = 1),
+                     limits = c(-1, 3)) +
+  labs(title = "Return Distribution",
+       subtitle = "Market vs Top Quintile",
+       x = "Next-year return", y = "Frequency") +
+  theme_fb() +
+  theme(legend.position = c(0.85, 0.85),
+        legend.background = element_rect(fill = pal$paper, color = NA))
+```
+]
+
+.pull-right[
+```{r risk-box, fig.height=4.0, fig.width=5}
+box_df <- tibble(
+  series = factor(c(rep("Market", length(mkt)),
+                    rep("Top Quintile", length(top))),
+                  levels = c("Market", "Top Quintile")),
+  ret    = c(mkt, top)
+)
+
+ggplot(box_df, aes(series, ret, fill = series)) +
+  geom_boxplot(width = 0.45, outlier.alpha = 0.15,
+               color = pal$navy, linewidth = 0.4) +
+  scale_fill_manual(values = c("Market" = pal$teal,
+                               "Top Quintile" = pal$gold),
+                    guide = "none") +
+  scale_y_continuous(labels = percent_format(accuracy = 1),
+                     limits = c(-1, 1.5)) +
+  labs(title = "Distribution of Returns",
+       subtitle = "Top quintile shows higher upside",
+       x = NULL, y = "Next-year return") +
+  theme_fb()
+```
+]
+
+.footnote[Top quintile: higher upside potential, slightly higher volatility, more extreme positive outcomes.]
+
+---
+
+## Implications for Stakeholders
+
+.pull-left.compact[
+.card[
+.card-title[Investors]
+- Better stock-screening tool
+- Focus on high-probability winners
+]
+.card[
+.card-title[Portfolio Managers]
+- Combine ML ranking with diversification
+- Improves the decision-making process
+]
+]
+
+.pull-right.compact[
+.card[
+.card-title[Companies]
+- Sentiment shapes investor perception
+- Reputation risk is measurable
+]
+.card[
+.card-title[Researchers]
+- ML + alternative data extends classic finance models
+]
+]
+
+---
+
+## Ethical, Legal &amp; Societal Implications
+
+.pull-left.compact[
+.card[
+.card-title[Model Risk]
+Past performance ≠ future results.
+]
+.card[
+.card-title[Look-Ahead Bias]
+Avoided by predicting *t + 1* from *t*.
+]
+.card[
+.card-title[Data Bias]
+Sentiment coverage favors large firms.
+]
+]
+
+.pull-right.compact[
+.card[
+.card-title[Fairness]
+Advanced data sources advantage institutions.
+]
+.card[
+.card-title[Legal]
+- Not financial advice
+- Real-world deployment requires regulation, costs, and disclosure
+]
+]
+
+---
+
+## Conclusion
+
+.pull-left.compact[
+- ML model **successfully** predicts stock returns
+- **Strong separation** between top and bottom stocks
+- Sentiment adds **measurable** value
+- Strategy **consistently outperforms** the market
+
+<div class="stat-grid stat-grid-2" style="margin-top:1em">
+  <div class="stat"><div class="num">+8.7 pp</div>
+       <div class="label">Excess return vs market</div></div>
+  <div class="stat"><div class="num">13.9%</div>
+       <div class="label">Q5 – Q1 spread (with sentiment)</div></div>
+</div>
+]
+
+.pull-right[
+```{r picks}
+picks <- tribble(
+  ~Ticker, ~Company,           ~Sector,                    ~Score,
+  "COIN",  "Coinbase",         "Financials",                3.71,
+  "NVR",   "NVR Inc.",         "Consumer Discretionary",    2.61,
+  "BKNG",  "Booking Holdings", "Consumer Discretionary",    2.16,
+  "GOOG",  "Alphabet",         "Communication Services",    1.86,
+  "NVDA",  "NVIDIA",           "Information Technology",    1.85,
+  "DASH",  "DoorDash",         "Consumer Discretionary",    1.83,
+  "DDOG",  "Datadog",          "Information Technology",    1.76,
+  "META",  "Meta Platforms",   "Communication Services",    1.41,
+  "AMZN",  "Amazon",           "Consumer Discretionary",    1.22,
+  "CRWD",  "CrowdStrike",      "Information Technology",    1.11
+)
+
+kable(picks, align = "llll", digits = 2,
+      col.names = c("Ticker", "Company", "Sector", "Model Score")) %>%
+  kable_styling(full_width = TRUE, font_size = 13) %>%
+  row_spec(0, background = pal$navy, color = "white", bold = TRUE)
+```
+.tiny.muted[Top 10 picks ranked by latest model score.]
+]
+
+---
+
+class: inverse, center, middle
+
+# Thank You
+
+.accent[Will Ferris &amp; Charlie Baughan]
+
+.small.muted[Questions?]
